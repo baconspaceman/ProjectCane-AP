@@ -2,7 +2,7 @@
 
 ## RC1 — Experimental native integration
 
-The first public release of Project Kane AP, built on ProjectCane's native
+The first public release of ProjectCane AP, built on ProjectCane's native
 Sly Cooper and the Thievius Raccoonus port.
 
 - Native checks, item delivery and real boss/goal reporting through the Universal

@@ -1,4 +1,4 @@
-> **Native PC / Project Kane AP:** use the [native RC1 setup tutorial](https://github.com/baconspaceman/Project-Kane-AP/blob/main/docs/GETTING_STARTED.md). The instructions below describe the original PCSX2/PINE client, not the native companion.
+> **Native PC / ProjectCane AP:** use the [native RC1 setup tutorial](https://github.com/baconspaceman/ProjectCane-AP/blob/main/docs/GETTING_STARTED.md). The instructions below describe the original PCSX2/PINE client, not the native companion.
 
 # Sly Cooper and the Thievius Raccoonus Guide
 

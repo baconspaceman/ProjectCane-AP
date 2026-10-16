@@ -1,6 +1,6 @@
 # Architecture
 
-Project Kane AP follows the native game/companion model demonstrated by **4laric's Sunshine integration**, adapted to Sly's existing Python world logic.
+ProjectCane AP follows the native game/companion model demonstrated by **4laric's Sunshine integration**, adapted to Sly's existing Python world logic.
 
 | Component | Authority |
 |---|---|

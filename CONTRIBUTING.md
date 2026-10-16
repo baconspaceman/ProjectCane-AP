@@ -1,6 +1,6 @@
 # Contributing
 
-Project Kane AP is an experimental adaptation. Please preserve the original Sly
+ProjectCane AP is an experimental adaptation. Please preserve the original Sly
 APWorld identity, location/item IDs and access rules unless a change explicitly
 introduces and documents a new compatibility boundary.
 

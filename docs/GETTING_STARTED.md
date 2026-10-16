@@ -2,7 +2,7 @@
 
 RC1 is a **source-first experimental release**. The companion/runtime is packaged, but the modified ProjectCane game is built on your computer. Allow time for that first build and game-data preparation.
 
-The native engine and extraction tools come from **theclub654 and the ProjectCane contributors**. This integration depends on their work. Use their [official repository](https://github.com/theclub654/ProjectCane) and [release page](https://github.com/theclub654/ProjectCane/releases) for upstream instructions and extraction tools; Project Kane AP adds the AP adapter rather than replacing their authorship.
+The native engine and extraction tools come from **theclub654 and the ProjectCane contributors**. This integration depends on their work. Use their [official repository](https://github.com/theclub654/ProjectCane) and [release page](https://github.com/theclub654/ProjectCane/releases) for upstream instructions and extraction tools; ProjectCane AP adds the AP adapter rather than replacing their authorship.
 
 ## 1. Prepare the prerequisites
 
@@ -61,7 +61,7 @@ The repository includes [examples/SlyPlayer.yaml](../examples/SlyPlayer.yaml), a
 3. Change the player name if desired. For multiple players, give every YAML a distinct player name and place each intended participant's YAML in the same input folder. Keep unrelated old YAMLs outside the selected input folder so they are not accidentally included.
 4. Run the installation's normal **Generate** entry through the Archipelago Launcher. Use normal random seed generation; the example does not supply a seed number or plando placements.
 5. Host the generated output using your normal Archipelago server/room workflow. Generation alone does not start a room. Keep the resulting output for that run rather than regenerating it when resuming.
-6. Connect Project Kane AP to that room using the exact generated slot name—**`SlyPlayer`** if you did not rename it—and the room's address/port.
+6. Connect ProjectCane AP to that room using the exact generated slot name—**`SlyPlayer`** if you did not rename it—and the room's address/port.
 
 The example starts with Tide of Terror available, requires **one boss victory** to unlock Clockwerk, enables **FastClockwerk** and cutscene skipping, and includes individual bottle checks/items plus hourglasses. It excludes all six minigame-check categories and adds no minigame caches. **TrapChance is explicitly zero**, and DeathLink, RingLink, EnergyLink, DamageLink, and TrapLink are explicitly false because RC1 does not implement those links.
 

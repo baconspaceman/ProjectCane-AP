@@ -1,16 +1,16 @@
-# Project Kane AP
+# ProjectCane AP
 
 **Sly Cooper and the Thievius Raccoonus, running natively on Windows with Archipelago.**
 
 **RC1 · Experimental · Windows x64 · One-time local native build**
 
-[Download RC1](https://github.com/baconspaceman/Project-Kane-AP/releases/tag/rc1) ·
+[Download RC1](https://github.com/baconspaceman/ProjectCane-AP/releases/tag/rc1) ·
 [Setup tutorial](docs/GETTING_STARTED.md) · [Known issues](docs/KNOWN_ISSUES.md) ·
 [Roadmap](ROADMAP.md)
 
-Project Kane AP connects a custom build of **ProjectCane** to Archipelago. It preserves the Sly 1 APWorld's checks, items, goals, and logic while replacing the emulator/PINE connection with a native game adapter and companion client.
+ProjectCane AP connects a custom build of **ProjectCane** to Archipelago. It preserves the Sly 1 APWorld's checks, items, goals, and logic while replacing the emulator/PINE connection with a native game adapter and companion client.
 
-**ProjectCane makes this project possible.** The native port, engine reconstruction, and original extraction tools are the work of **theclub654 and the ProjectCane contributors**. Project Kane AP adds the Archipelago integration; it does not claim authorship of the native port. Please visit the [official ProjectCane repository](https://github.com/theclub654/ProjectCane) and [ProjectCane releases](https://github.com/theclub654/ProjectCane/releases) for their work. This independent adaptation is not an official endorsement or release from that team.
+**ProjectCane makes this project possible.** The native port, engine reconstruction, and original extraction tools are the work of **theclub654 and the ProjectCane contributors**. ProjectCane AP adds the Archipelago integration; it does not claim authorship of the native port. Please visit the [official ProjectCane repository](https://github.com/theclub654/ProjectCane) and [ProjectCane releases](https://github.com/theclub654/ProjectCane/releases) for their work. This independent adaptation is not an official endorsement or release from that team.
 
 **RC1 is the first public, experimental source-first release.** It includes the current native AP integration and in-game tracker, but **you build the modified native game locally**. Multiplayer ghosts, AP links, and the remaining advanced features are planned for **RC1.5**. RC2 will follow further ProjectCane development. See the [roadmap](ROADMAP.md) for the current release boundaries.
 
@@ -20,9 +20,9 @@ This is a custom native game build, not a plugin for an unmodified ProjectCane i
 
 Download the **Windows companion/runtime ZIP** and, if you are generating a seed, obtain the separately listed compatible **`sly1.apworld`**. Extract the ZIP into its own writable folder.
 
-- [Windows companion/runtime ZIP](https://github.com/baconspaceman/Project-Kane-AP/releases/download/rc1/Project-Kane-AP-RC1-Windows-Source-Assisted.zip)
-- [Sly APWorld for the generator](https://github.com/baconspaceman/Project-Kane-AP/releases/download/rc1/sly1.apworld)
-- [SHA-256 checksums](https://github.com/baconspaceman/Project-Kane-AP/releases/download/rc1/SHA256SUMS.txt)
+- [Windows companion/runtime ZIP](https://github.com/baconspaceman/ProjectCane-AP/releases/download/rc1/ProjectCane-AP-RC1-Windows-Source-Assisted.zip)
+- [Sly APWorld for the generator](https://github.com/baconspaceman/ProjectCane-AP/releases/download/rc1/sly1.apworld)
+- [SHA-256 checksums](https://github.com/baconspaceman/ProjectCane-AP/releases/download/rc1/SHA256SUMS.txt)
 
 **First setup requires Git, CMake, and Visual Studio 2022 Build Tools with Desktop development with C++ and a Windows SDK.** Run `Build-Native.cmd` to fetch the pinned ProjectCane source, apply the AP changes, and build it locally. The downloadable package does **not** contain a ProjectCane game binary, extraction-tool binary, or FFmpeg binary.
 

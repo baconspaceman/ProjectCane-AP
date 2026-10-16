@@ -1,6 +1,6 @@
 # Third-party components and licensing
 
-The root MIT license covers original Project Kane AP integration code. It does not
+The root MIT license covers original ProjectCane AP integration code. It does not
 relicense the upstream game, game data, or separately licensed dependencies.
 
 ## Native game foundation: ProjectCane

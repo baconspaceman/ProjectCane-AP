@@ -9,7 +9,7 @@ body:
     id: versions
     attributes:
       label: Versions
-      description: Project Kane AP release, AP core, APWorld, and ProjectCane base
+      description: ProjectCane AP release, AP core, APWorld, and ProjectCane base
     validations:
       required: true
   - type: input
