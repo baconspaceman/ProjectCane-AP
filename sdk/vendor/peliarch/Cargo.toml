@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+members = ["crates/archipelago-rs", "crates/peliarch-client-core", "crates/peliarch-client-gui", "crates/client-ui", "crates/bb-overlay-view", "crates/standalone-egui", "crates/standalone-windows"]
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/fswap/fromsoftware-archipelago"
+
+[workspace.dependencies]
+archipelago_rs = { path = "crates/archipelago-rs" }
+peliarch-client-core = { path = "crates/peliarch-client-core" }
+serde = { version = "1.0.228", features = ["derive"] }
+json = { package = "serde_json", version = "1.0.149" }
+tungstenite = { git = "https://github.com/openai-oss-forks/tungstenite-rs", rev = "4fffad30fe373adbdcffab9545e9e9bf4f2fc19f", version = "0.27.0", default-features = false, features = ["handshake", "deflate"] }
+
+[workspace.dependencies.windows]
+version = "0.62"
+features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_System_LibraryLoader", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging"]

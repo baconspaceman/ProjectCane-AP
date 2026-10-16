@@ -1,0 +1,19 @@
+[package]
+name = "standalone-windows"
+version = "0.0.0"
+edition.workspace = true
+repository.workspace = true
+license.workspace = true
+readme = false
+
+[dependencies]
+client-ui = { path = "../client-ui" }
+serde.workspace = true
+json.workspace = true
+
+# The Win32 shell is the only consumer, and every use site is already behind `#[cfg(windows)]`.
+# Scoping the dependency to match lets the platform-neutral half of this crate -- the window
+# options, the command normaliser, the feed filters -- build and TEST on a Linux or macOS host,
+# which is where most of this repo's cheap gates run. It changes nothing about the Windows build.
+[target.'cfg(windows)'.dependencies]
+windows.workspace = true

@@ -1,0 +1,6 @@
+{
+  "repository": "https://github.com/theclub654/ProjectCane.git",
+  "tag": "v0.4.1-beta.1",
+  "commit": "ebc994c7706be07e1150d5da2c276f2a5789c27f",
+  "note": "Upstream native engine is fetched by the user; no ProjectCane executable or disc data is distributed here."
+}

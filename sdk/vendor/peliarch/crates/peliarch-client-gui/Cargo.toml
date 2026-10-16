@@ -1,0 +1,19 @@
+[package]
+name = "peliarch-client-gui"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "Reusable native Archipelago client frontend"
+
+[dependencies]
+archipelago_rs.workspace = true
+peliarch-client-core.workspace = true
+standalone-egui = { path = "../standalone-egui" }
+egui = "0.32"
+
+[target.'cfg(windows)'.dependencies]
+eframe = { version = "0.32", default-features = false, features = ["default_fonts", "glow"] }
+winit = "0.30"
+
+[dev-dependencies]
+image = { version = "0.25", default-features = false, features = ["png"] }

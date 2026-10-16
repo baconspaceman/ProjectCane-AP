@@ -1,0 +1,19 @@
+[package]
+name = "universal-ap-bridge"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[dependencies]
+peliarch-client-core = { path = "vendor/peliarch/crates/peliarch-client-core" }
+archipelago_rs = { path = "vendor/peliarch/crates/archipelago-rs" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[[bin]]
+name = "universal-ap-client"
+path = "src/bin/client.rs"
+
+[[bin]]
+name = "fake-game"
+path = "src/bin/fake_game.rs"

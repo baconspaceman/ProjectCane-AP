@@ -1,0 +1,24 @@
+native/ProjectCane/
+runtime/
+profiles/
+dist/
+target/
+__pycache__/
+*.pyc
+*.iso
+*.brx
+*.bnk
+*.mus
+*.vag
+*.m2v
+*.apsave
+*.archipelago
+*.log
+*.dmp
+*.pdb
+*.exe
+*.dll
+# Local export leftovers are not part of the allowlisted public source.
+/logic/fixtures/
+/logic/*.md
+/tests/logic_mapping_test.py

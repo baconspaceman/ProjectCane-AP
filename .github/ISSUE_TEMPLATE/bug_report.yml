@@ -1,0 +1,31 @@
+name: Bug report
+description: Report an RC1 setup or gameplay issue
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: "Do not upload ISOs, extracted game data, passwords, or a complete personal profile folder. Check the known issues first."
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Project Kane AP release, AP core, APWorld, and ProjectCane base
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: System and controls
+      description: Windows version, CPU/GPU, and keyboard/controller
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: What happened?
+      description: Include level, action, expected behavior, and steps to reproduce.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Sanitized diagnostic export or a small reviewed log excerpt. Mention whether the same profile resumes correctly.

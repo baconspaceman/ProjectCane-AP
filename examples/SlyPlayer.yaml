@@ -1,0 +1,25 @@
+name: SlyPlayer
+game: Sly Cooper and the Thievius Raccoonus
+Sly Cooper and the Thievius Raccoonus:
+  StartingEpisode: tide_of_terror
+  UnlockClockwerk: boss_victories
+  RequiredBosses: 1
+  FastClockwerk: true
+  CutsceneSkip: true
+  IncludeHourglasses: true
+  LocationCluesanityBundleSize: 1
+  ItemCluesanityBundleSize: 1
+  MinigameCaches: 0
+  ExcludeMinigames:
+    - Crabs
+    - Races
+    - Turrets
+    - Hover Blasters
+    - Chicken Killing
+    - Swamp Skiff
+  TrapChance: 0
+  DeathLink: false
+  RingLink: false
+  EnergyLink: false
+  DamageLink: false
+  TrapLink: false

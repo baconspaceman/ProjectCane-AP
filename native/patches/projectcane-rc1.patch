@@ -1,0 +1,588 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9a40b93..cd06c83 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -87,6 +87,8 @@ target_link_libraries(cane_ui PUBLIC cane_platform glfw ${CMAKE_DL_LIBS})
+ target_compile_definitions(cane_ui PUBLIC IMGUI_DEFINE_MATH_OPERATORS GLFW_INCLUDE_NONE)
+ 
+ # Keep Visual Studio's source list authoritative while the two build systems coexist.
++set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
++    "${CMAKE_CURRENT_SOURCE_DIR}/Sly1-Release/Sly1-Release.vcxproj")
+ file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/Sly1-Release/Sly1-Release.vcxproj"
+     source_lines REGEX "<ClCompile Include=")
+ set(game_sources "")
+@@ -103,6 +105,18 @@ if(NOT WIN32)
+ endif()
+ 
+ add_executable(ProjectCane ${game_sources} "${imgui_root}/imgui_demo.cpp")
++add_executable(SlyApTrapTest EXCLUDE_FROM_ALL
++    "${CMAKE_CURRENT_SOURCE_DIR}/../../tests/trap_runtime_test.cpp"
++    Sly1-Release/ap_traps.cpp)
++# Assertions are the checks even in a Release build of this small test target.
++if(MSVC)
++    target_compile_options(SlyApTrapTest PRIVATE /UNDEBUG)
++else()
++    target_compile_options(SlyApTrapTest PRIVATE -UNDEBUG)
++endif()
++if(WIN32)
++    set_property(TARGET ProjectCane PROPERTY WIN32_EXECUTABLE TRUE)
++endif()
+ target_link_libraries(ProjectCane PRIVATE cane_ui Threads::Threads SDL2::SDL2)
+ target_compile_definitions(ProjectCane PRIVATE
+     CANE_PORTABLE_SHADERS
+diff --git a/Sly1-Release/Sly1-Release.vcxproj b/Sly1-Release/Sly1-Release.vcxproj
+index eec05e8..027d8f2 100644
+--- a/Sly1-Release/Sly1-Release.vcxproj
++++ b/Sly1-Release/Sly1-Release.vcxproj
+@@ -1,4 +1,4 @@
+-﻿<?xml version="1.0" encoding="utf-8"?>
++ï»¿<?xml version="1.0" encoding="utf-8"?>
+ <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+   <ItemGroup Label="ProjectConfigurations">
+     <ProjectConfiguration Include="Debug|Win32">
+@@ -288,6 +288,9 @@
+     <ClCompile Include="frm.cpp" />
+     <ClCompile Include="frzg.cpp" />
+     <ClCompile Include="game.cpp" />
++    <ClCompile Include="ap_bridge.cpp" />
++    <ClCompile Include="ap_traps.cpp" />
++    <ClCompile Include="ap_ui.cpp" />
+     <ClCompile Include="gc.cpp">
+       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+     </ClCompile>
+diff --git a/Sly1-Release/clock.cpp b/Sly1-Release/clock.cpp
+index a6f4a19..7c62685 100644
+--- a/Sly1-Release/clock.cpp
++++ b/Sly1-Release/clock.cpp
+@@ -1,4 +1,5 @@
+ #include "clock.h"
++#include "ap_traps.h"
+ #include <chrono>
+ 
+ void StartupClock()
+@@ -55,7 +56,7 @@ void MarkClockTick(CLOCK* pclock)
+     pclock->dtReal = dt;
+ 
+     float enabledDt = (pclock->fEnabled != 0) ? dt : 0.0f;
+-    float adjusted = enabledDt * g_rtClockDebug * g_rtClockPowerUp * g_rtClock;
++    float adjusted = enabledDt * g_rtClockDebug * g_rtClockPowerUp * g_rtClock * aptraps::SpeedScale();
+ 
+     if (adjusted >= kDtMin)
+         pclock->dtReal = adjusted;
+diff --git a/Sly1-Release/cm.cpp b/Sly1-Release/cm.cpp
+index bcddeff..3997e41 100644
+--- a/Sly1-Release/cm.cpp
++++ b/Sly1-Release/cm.cpp
+@@ -291,9 +291,9 @@ void CloneCm(CM* pcm, CM* pcmBase)
+ 	pcm->cptn = pcmBase->cptn;
+ }
+ 
+-void BuildProjectionMatrix(float fov, float aspectRatio, float near, float far, glm::mat4 &pmat)
++void BuildProjectionMatrix(float fov, float aspectRatio, float nearPlane, float farPlane, glm::mat4 &pmat)
+ {
+-	pmat = glm::perspective(fov, aspectRatio, near, far);
++	pmat = glm::perspective(fov, aspectRatio, nearPlane, farPlane);
+ }
+ 
+ void SetSwCameraFov(SW* psw, float radFOV)
+diff --git a/Sly1-Release/coin.cpp b/Sly1-Release/coin.cpp
+index ece3e3e..73830a3 100644
+--- a/Sly1-Release/coin.cpp
++++ b/Sly1-Release/coin.cpp
+@@ -1,3 +1,4 @@
++#include "ap_bridge.h"
+ #include "coin.h"
+ #include "target.h"
+ #include "chkpnt.h"
+@@ -1429,7 +1430,7 @@ void SetKeyDprizes(KEY* pkey, DPRIZES dprizes)
+ 		if ((g_plsCur->grfls & 2U) == 0)
+ 		{
+ 			g_plsCur->grfls |= 2U;
+-			++g_pwsCur->ckey;
++			if (!slyap::Enabled() || g_pgsCur->gameWorldCur == GAMEWORLD_Intro) ++g_pwsCur->ckey;
+ 		}
+ 
+ 		g_keyctr.pvtblot->pfnShowBlot(&g_keyctr);
+diff --git a/Sly1-Release/dialog.cpp b/Sly1-Release/dialog.cpp
+index 6d4882a..c032873 100644
+--- a/Sly1-Release/dialog.cpp
++++ b/Sly1-Release/dialog.cpp
+@@ -1,3 +1,4 @@
++#include "ap_bridge.h"
+ #include "dialog.h"
+ #include "jt.h"
+ #include "tv.h"
+@@ -714,6 +715,12 @@ void UpdateDialog(DIALOG* pdialog, float dt)
+ 
+ 		case DIALOGS_Playing:
+ 		{
++            if (slyap::SkipCutscenes() && g_binoc.pdialogPlaying == pdialog &&
++                pdialog->ideCur < pdialog->cde && !FDialogSkipProtected(pdialog)) {
++                FinishDialogEvents(pdialog);
++                dialogs = pdialog->dialogs;
++                break;
++            }
+ 			const bool fSkipLinePressed = g_joy.IsPressed(BTN_L1);
+ 			const bool fSkipDialogPressed = g_joy.IsPressed(BTN_R1);
+ 			const bool fSkipPressed = fSkipLinePressed || fSkipDialogPressed;
+diff --git a/Sly1-Release/dysh.cpp b/Sly1-Release/dysh.cpp
+index 3002e3b..a4d6838 100644
+--- a/Sly1-Release/dysh.cpp
++++ b/Sly1-Release/dysh.cpp
+@@ -1,4 +1,6 @@
+ #include "dysh.h"
++#include "jt.h"
++#include "ap_traps.h"
+ #include "shadow.h"
+ 
+ namespace
+@@ -74,6 +76,7 @@ void SetDyshShadow(DYSH *pdysh, SHADOW *pshadow)
+ 
+ void RenderDyshSelf(DYSH* pdysh, CM* pcm, RO* pro)
+ {
++    if (g_pjt && pdysh == reinterpret_cast<DYSH*>(g_pjt->paloShadow) && aptraps::HideSly()) return;
+     if (pdysh->pshadowGen != nullptr) 
+     {
+         RPL rpl{};
+diff --git a/Sly1-Release/fmv.cpp b/Sly1-Release/fmv.cpp
+index 9004edd..2f6807f 100644
+--- a/Sly1-Release/fmv.cpp
++++ b/Sly1-Release/fmv.cpp
+@@ -1,3 +1,4 @@
++#include "ap_bridge.h"
+ #include "fmv.h"
+ #include "gui_layout.h"
+ #include "game.h"
+@@ -697,7 +698,7 @@ void ExecutePendingCutscenes()
+     for (int i = 0; i < 2 && pending[i] != OID_Nil; ++i)
+     {
+         const CUTSCENEINFO* info = PcutsceneinfoFromIdentityId(pending[i]);
+-        if (info != nullptr)
++        if (info != nullptr && !slyap::SkipCutscenes())
+             PlayCutscene(*info, skippable[i]);
+     }
+ }
+diff --git a/Sly1-Release/game.cpp b/Sly1-Release/game.cpp
+index 0807a86..3e70c36 100644
+--- a/Sly1-Release/game.cpp
++++ b/Sly1-Release/game.cpp
+@@ -1,3 +1,4 @@
++#include "ap_bridge.h"
+ #include "game.h"
+ #include "sw.h"
+ #include "Input.h"
+@@ -173,7 +174,7 @@ void SetWorldComplete(GAMEWORLD gameworld)
+ 
+         case GAMEWORLD_Voodoo:
+         g_pgsCur->unlockedCutscenes |= 0x200;
+-        g_pgsCur->grfvault |= 0x10000;
++        if (!slyap::Enabled()) g_pgsCur->grfvault |= 0x10000;
+         break;
+ 
+         case GAMEWORLD_Snow:
+@@ -415,7 +416,7 @@ int CalculatePercentCompletion(const GS* pgs)
+ 
+     const int percent = (cTasksComplete * 100) / cTasksTotal;
+ 
+-    // Any nonzero incomplete progress is displayed as 1�99%.
++    // Any nonzero incomplete progress is displayed as 1â€“99%.
+     return std::clamp(percent, 1, 99);
+ }
+ 
+diff --git a/Sly1-Release/hubsel.cpp b/Sly1-Release/hubsel.cpp
+index 1675034..fa18a26 100644
+--- a/Sly1-Release/hubsel.cpp
++++ b/Sly1-Release/hubsel.cpp
+@@ -1,3 +1,4 @@
++#include "ap_bridge.h"
+ #include "hubsel.h"
+ #include "hubblot.h"
+ #include "dialog.h"
+@@ -118,6 +119,29 @@ void ConfirmHubselSelection(HUBSEL* phubsel)
+         return;
+ 
+     const GAMEWORLD gameWorld = phubsel->gameWorldSelected;
++    if (slyap::Enabled()) {
++        if (!slyap::WorldAllowed(gameWorld)) return;
++        // An AP episode receipt sets availability before any level has been
++        // visited. The vanilla visited-world branch opens an empty revisit map
++        // in that case. Enter only its opening level; don't mark checks complete.
++        if (gameWorld >= GAMEWORLD_Underwater && gameWorld <= GAMEWORLD_Snow &&
++            !slyap::HubTravelAllowed(gameWorld) &&
++            (g_pgsCur->aws[gameWorld].als[0].grfls & FLS_Visited) == 0) {
++            if (auto* level = GetLevelInfo(static_cast<int>(gameWorld) << 8)) {
++                UnlockWorldCutscene(gameWorld);
++                WipeToWorldWarp(level, OID_Nil, WIPEK_Fade);
++                PopUiActiveBlot(&g_ui);
++            }
++            return;
++        }
++        if (gameWorld == GAMEWORLD_Clockwerk && slyap::FastClockwerk()) {
++            if (auto* level = GetLevelInfo(0x508)) {
++                WipeToWorldWarp(level, OID_Nil, WIPEK_Fade);
++                PopUiActiveBlot(&g_ui);
++            }
++            return;
++        }
++    }
+ 
+ 	if (gameWorld == GAMEWORLD_Intro || (g_pgsCur->aws[gameWorld].fws & FWS_Visited) != 0)
+     {
+@@ -176,7 +200,7 @@ bool FHubselWorldAvailable(GAMEWORLD gameWorld)
+     if (gameWorld < GAMEWORLD_Underwater || gameWorld > GAMEWORLD_Clockwerk)
+         return false;
+ 
+-    return g_fUnlockAllHubWorlds || (g_pgsCur->aws[gameWorld].fws & FWS_Visited) != 0;
++    return slyap::Enabled() ? slyap::WorldAllowed(gameWorld) : (g_fUnlockAllHubWorlds || (g_pgsCur->aws[gameWorld].fws & FWS_Visited) != 0);
+ }
+ 
+ void SetupHubsel(HUBSEL* phubsel)
+@@ -199,7 +223,7 @@ void SetupHubsel(HUBSEL* phubsel)
+     phubsel->gameWorldMax = GAMEWORLD_Clockwerk;
+ 
+     // Preserve the original progression calculation when the override is off.
+-    if (!g_fUnlockAllHubWorlds)
++    if (!g_fUnlockAllHubWorlds && !slyap::Enabled())
+     {
+         while (phubsel->gameWorldMax > GAMEWORLD_Muggshot)
+         {
+diff --git a/Sly1-Release/jt.cpp b/Sly1-Release/jt.cpp
+index 45592b8..0e24bed 100644
+--- a/Sly1-Release/jt.cpp
++++ b/Sly1-Release/jt.cpp
+@@ -1,4 +1,5 @@
+ #include "jt.h"
++#include "ap_traps.h"
+ #include "pzo.h"
+ #include "rail.h"
+ #include "pipe.h"
+@@ -1506,6 +1507,7 @@ void CalculateJtToolSpin(JT* pjt, float u, glm::mat3* pmat)
+ 
+ void RenderJtAll(JT* pjt, CM* pcm, RO* pro)
+ {
++    if (pjt == g_pjt && aptraps::HideSly()) return;
+     if (pjt->fHidden != 0)
+         return;
+ 
+@@ -2784,7 +2786,7 @@ void UpdateJtActive(JT* pjt, JOY* pjoy, float dt)
+ 
+     if (pjt->jts == 13)
+     {
+-        if (!pjoy->IsHeld(BTN_TRIANGLE))
++        if (!pjoy->IsHeld(BTN_TRIANGLE) && !aptraps::ForceRoll())
+         {
+             if (g_clock.t - pjt->tJts > DT_JtMinBall)
+                 SetJtJts(pjt, 13, 56);
+diff --git a/Sly1-Release/main.cpp b/Sly1-Release/main.cpp
+index 120e8ea..1f6fbf4 100644
+--- a/Sly1-Release/main.cpp
++++ b/Sly1-Release/main.cpp
+@@ -1,3 +1,5 @@
++#include "ap_ui.h"
++#include "ap_bridge.h"
+ #include "main.h"
+ #include "hide.h"
+ #include "update.h"
+@@ -35,7 +37,7 @@ namespace
+ {
+ void LoadDebugModeSetting()
+ {
+-	g_fDeveloperDebugMode = cane::DebugMode();
++	g_fDeveloperDebugMode = !slyap::Enabled() && cane::DebugMode();
+ }
+ 
+ class FramePacer
+@@ -165,6 +167,7 @@ void RunGameFrame()
+     // transition that replaces the current world.
+     if (FCutscenePending() && g_wipe.wipes != WIPES_WipingOut)
+     {
++        if (slyap::Enabled()) apui::SetCinematic(true);
+         ExecutePendingCutscenes();
+     }
+ 
+@@ -178,6 +181,7 @@ void RunGameFrame()
+ 
+     if (FCutscenePending() && g_wipe.wipes != WIPES_WipingOut)
+     {
++        if (slyap::Enabled()) apui::SetCinematic(true);
+         ExecutePendingCutscenes();
+     }
+ 
+@@ -205,6 +209,23 @@ void RunGameFrame()
+ 
+     g_joy.Update(g_gl.window);
+     RenderMenuGui(g_psw);
++    if (slyap::Enabled()) {
++        slyap::Tick();
++        apui::SetNativeDiagnostic(slyap::Error());
++        apui::SetCurrentArea(slyap::CurrentArea());
++        apui::SetCinematic(FCutscenePlaying());
++        apui::Frame();
++        if (apui::WantsGameInputCapture()) {
++            g_fDisableInput = true;
++            g_joy.current.clear(); g_joy.previous.clear();
++            g_joy.handled.clear(); g_joy.forcedHeld.clear();
++            g_joy.x = g_joy.y = g_joy.x2 = g_joy.y2 = 0;
++            g_joy.stick = g_joy.stickLatch = g_joy.uDeflect = g_joy.uDeflect2 = 0;
++            g_joy.dxLatch = g_joy.dyLatch = 0;
++            _ResetCodes();
++            glfwSetInputMode(g_gl.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
++        }
++    }
+ 
+     if (g_psw != nullptr)
+     {
+@@ -547,8 +568,24 @@ int RunApplication(const std::vector<std::string>& arguments)
+     InstallRuntimeErrorHandlers();
+     try
+     {
++        for (size_t i=0;i<arguments.size();++i) {
++            if(arguments[i]=="--ap-self-test") {
++                if(i+1>=arguments.size())return EXIT_FAILURE;
++                return slyap::RunSelfTest(std::filesystem::u8path(arguments[i+1]));
++            }
++        }
+ 		cane::ConfigureRuntime(arguments);
++        if (const char* apProfile = std::getenv("SLY_AP_PROFILE")) {
++            slyap::Initialize(std::filesystem::u8path(apProfile));
++            slyap::Tick();
++            apui::Initialize(std::filesystem::u8path(apProfile));
++            if (const char* maps = std::getenv("SLY_AP_MAP_PACK"))
++                apui::SetMapPackPath(std::filesystem::u8path(maps));
++        }
+         Startup();
++        // Native controls poll GLFW once per frame. Preserve a short key tap
++        // that began and ended between polls, including accessible input tools.
++        if (slyap::Enabled()) glfwSetInputMode(g_gl.window, GLFW_STICKY_KEYS, GLFW_TRUE);
+ 		#ifdef _WIN32
+ 		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
+ 		#endif
+@@ -573,7 +610,8 @@ int RunApplication(const std::vector<std::string>& arguments)
+ 		if (g_psw != nullptr)
+ 			DeleteWorld(g_psw);
+ 
+-		ShutdownSound();
++		apui::Shutdown();
++        ShutdownSound();
+ 		ShutdownControllerInput();
+ 		FreeTvGL();
+ 		g_gl.TerminateGL();
+diff --git a/Sly1-Release/mark.cpp b/Sly1-Release/mark.cpp
+index d117570..9bcbf60 100644
+--- a/Sly1-Release/mark.cpp
++++ b/Sly1-Release/mark.cpp
+@@ -1,4 +1,5 @@
+ #include "mark.h"
++#include "ap_traps.h"
+ #include "hide.h"
+ #include <cstdio>
+ 
+@@ -23,7 +24,7 @@ float MuFromAmtlk(MTLK* amtlk)
+     if (mu < 0.0f)
+         mu = 0.0f;
+ 
+-    if ((g_grfcht & 8) != 0)
++    if ((g_grfcht & 8) != 0 || aptraps::IceActive())
+         mu *= 0.2f;
+ 
+     return mu;
+diff --git a/Sly1-Release/prompt.cpp b/Sly1-Release/prompt.cpp
+index ad911db..3ffb490 100644
+--- a/Sly1-Release/prompt.cpp
++++ b/Sly1-Release/prompt.cpp
+@@ -1,3 +1,4 @@
++#include "ap_bridge.h"
+ #include "prompt.h"
+ #include "ui.h"
+ #include "dialog.h"
+@@ -616,6 +617,10 @@ void SetPromptPrk(PROMPT* pprompt)
+     for (int slot = 0; slot < SAVE_SLOT_COUNT; ++slot)
+     {
+         GS* pgs = &g_saveData.saveData[slot];
++        if (slyap::Enabled()) {
++            std::snprintf(slotStrings[slot], 64, "%s", slot==0 ? (pgs->dt > 0 ? "Resume AP profile" : "Start AP profile") : "Use a separate AP profile");
++            continue;
++        }
+ 
+         if (pgs->dt != 0.0f)
+             BuildSaveSlotText(pgs, slotStrings[slot]);
+@@ -952,7 +957,7 @@ void ExecutePrompt(PROMPT* pprompt, int direction)
+         for (int slot = 0; slot < SAVE_SLOT_COUNT; ++slot)
+         {
+             if (s_arespkSlots[slot] == slotResponse)
+-                return slot;
++                return slyap::Enabled() && (slot!=0 || !slyap::Bound()) ? -1 : slot;
+         }
+ 
+         return -1;
+diff --git a/Sly1-Release/pzo.cpp b/Sly1-Release/pzo.cpp
+index d4b2c1e..ac22439 100644
+--- a/Sly1-Release/pzo.cpp
++++ b/Sly1-Release/pzo.cpp
+@@ -1,3 +1,4 @@
++#include "ap_bridge.h"
+ #include "pzo.h"
+ #include "chkpnt.h"
+ #include "sm.h"
+@@ -542,7 +543,7 @@ void OpenVault(VAULT* pvault)
+ 		return;
+ 
+ 	g_pwsCur->cvault++;
+-	g_pgsCur->grfvault |= pvault->fVault;
++	if (!slyap::Enabled()) g_pgsCur->grfvault |= pvault->fVault;
+ 	pvault->psw->pvault = nullptr;
+ 	g_plsCur->grfls |= FLS_Secondary;
+ 
+@@ -1068,7 +1069,7 @@ void OnClueSmack(CLUE* pclue)
+ 
+ 	if ((clueByte & mask) == 0) {
+ 		clueByte |= mask;
+-		++g_plsCur->abitClue.m_cbitSet;
++		if (!slyap::RemoteBottles()) ++g_plsCur->abitClue.m_cbitSet;
+ 	}
+ 
+ 	int cclue = g_plsCur->abitClue.m_cbitSet;
+@@ -1145,7 +1146,7 @@ void CollectClueSilent(CLUE* pclue)
+ 	if ((clueByte & mask) == 0) 
+ 	{
+ 		clueByte |= mask;
+-		++g_plsCur->abitClue.m_cbitSet;
++		if (!slyap::RemoteBottles()) ++g_plsCur->abitClue.m_cbitSet;
+ 	}
+ 
+ 	for (int i = pclue->cpaseg - 1; i >= 0; --i) 
+diff --git a/Sly1-Release/save.cpp b/Sly1-Release/save.cpp
+index f1a3fdc..f467362 100644
+--- a/Sly1-Release/save.cpp
++++ b/Sly1-Release/save.cpp
+@@ -1,3 +1,4 @@
++#include "ap_bridge.h"
+ #include "save.h"
+ #include "clock.h"
+ #include "cm.h"
+@@ -567,6 +568,7 @@ std::filesystem::path SystemSettingsPath()
+ 
+ bool WriteSaveSlot(int slot, const GS& save)
+ {
++    if (slyap::Enabled()) return slyap::SaveSlot(slot, save);
+     std::error_code ec;
+     std::filesystem::create_directories(SaveDirectory(), ec);
+     if (ec)
+@@ -597,6 +599,10 @@ bool ReadSaveSlot(int slot, GS* save, VIDEOSAVESETTINGS* legacyVideo, bool* hasL
+ {
+     if (save == nullptr || legacyVideo == nullptr || hasLegacyVideo == nullptr)
+         return false;
++    if (slyap::Enabled()) {
++        *legacyVideo = {}; *hasLegacyVideo = false; *save = {};
++        return slyap::LoadSlot(slot, save);
++    }
+ 
+     std::ifstream stream(SaveSlotPath(slot), std::ios::binary);
+     SaveFileHeader header{};
+@@ -1108,6 +1114,9 @@ bool SaveCurrentGameToDisk(SAVEDATA* psaveData)
+ 
+ bool DeleteSaveSlotFromDisk(SAVEDATA* psaveData, int slot)
+ {
++    // An AP run is a paired save plus delivery journal. New attempts are separate
++    // profiles; erasing only the visible game slot would destroy that pairing.
++    if (slyap::Enabled()) return false;
+     if (psaveData == nullptr || slot < 0 || slot >= SAVE_SLOT_COUNT)
+         return false;
+ 
+diff --git a/Sly1-Release/steppower.cpp b/Sly1-Release/steppower.cpp
+index 80375f5..08311be 100644
+--- a/Sly1-Release/steppower.cpp
++++ b/Sly1-Release/steppower.cpp
+@@ -1,4 +1,5 @@
+ #include "steppower.h"
++#include "ap_traps.h"
+ #include "jt.h"
+ #include "credit.h"
+ #include "decoy.h"
+@@ -55,6 +56,11 @@ void UpdateJtActivePowerUp(JT* pjt, JOY* pjoy)
+ {
+     if (pjt == nullptr || pjoy == nullptr || g_pgsCur == nullptr)
+         return;
++    if (pjt == g_pjt && aptraps::ForceRoll()) {
++        if (static_cast<unsigned int>(pjt->jts) < 3)
++            SetJtJts(pjt, 13, pjt->fBaseXp == 0 ? 54 : 55);
++        return;
++    }
+ 
+     if (g_fsp > FSP_Nil && (s_agrfvaultFsp[g_fsp] & GetAvailableVaultFlags()) == 0)
+     {
+diff --git a/Sly1-Release/ui.cpp b/Sly1-Release/ui.cpp
+index ae44316..e26627b 100644
+--- a/Sly1-Release/ui.cpp
++++ b/Sly1-Release/ui.cpp
+@@ -1,4 +1,5 @@
+ #include "ui.h"
++#include "ap_bridge.h"
+ #include "mb.h"
+ #include "binoc.h"
+ #include "wm.h"
+@@ -280,6 +281,13 @@ void UpdateUi(UI* pui)
+         if (pjoy->IsPressed(BTN_START))
+         {
+             pjoy->SetHandled(BTN_START);
++            if (slyap::Enabled()) {
++                // AP profiles own one paired save/journal. Always review the
++                // profile save before entering gameplay; never start unattached.
++                SetSaveManagerState(&g_saveData, SAVE_MENU_STATE_Selecting);
++                SetPrompt(&g_prompt, PRP_Basic, PRK_MemcardChooseLoadSlot);
++                break;
++            }
+             g_saveData.pgsCurrentSave = g_saveData.pgsAttractSave;
+ 
+             if (g_saveData.pgsAttractSave != nullptr)
+diff --git a/Sly1-Release/wm.cpp b/Sly1-Release/wm.cpp
+index c9b8b6e..9faa025 100644
+--- a/Sly1-Release/wm.cpp
++++ b/Sly1-Release/wm.cpp
+@@ -1,4 +1,5 @@
+ #include "wm.h"
++#include "ap_bridge.h"
+ #include "gui_layout.h"
+ #include "wipe.h"
+ #include "totals.h"
+@@ -35,6 +36,16 @@ bool FResolveWmLevel(WM* pwm, WORLDLEVEL worldLevelWm, GAMEWORLD* pgameWorld, WO
+     {
+         const int gameWorldIndex = static_cast<int>(pwm->gameWorldCur);
+ 
++        // AP access is earned by episode + first key, not by replaying the
++        // approach and physically touching its exit. Do not synthesize visited
++        // or completion flags; keep the approach selectable for remaining checks.
++        if (slyap::Enabled() && gameWorldIndex >= 1 && gameWorldIndex <= 4 &&
++            (worldLevelWm == WORLDLEVEL_Approach || worldLevelWm == WORLDLEVEL_Hub)) {
++            if (pgameWorld) *pgameWorld = gameWorld;
++            if (pworldLevel) *pworldLevel = worldLevel;
++            return worldLevelWm == WORLDLEVEL_Hub ? slyap::HubTravelAllowed(gameWorldIndex) : slyap::WorldAllowed(gameWorldIndex);
++        }
++
+         bool valid = true;
+ 
+         if (gameWorldIndex == 5 && (worldLevelWm == static_cast<WORLDLEVEL>(1) || worldLevelWm == static_cast<WORLDLEVEL>(7)))
+diff --git a/cmake/embed-shaders.cmake b/cmake/embed-shaders.cmake
+index cb78f5e..a08f5f8 100644
+--- a/cmake/embed-shaders.cmake
++++ b/cmake/embed-shaders.cmake
+@@ -8,8 +8,17 @@ foreach(shader IN LISTS shaders)
+   file(READ "${shader}" source)
+   string(ASCII 239 187 191 bom)
+   string(REGEX REPLACE "^${bom}" "" source "${source}")
+-  file(APPEND "${OUTPUT}"
+-    "if (name == \"${name}\") return R\"CANESHADER(${source})CANESHADER\";\n")
++  # MSVC limits individual string literals. Append bounded chunks at runtime
++  # instead of one large raw literal (or a single concatenated literal).
++  file(APPEND "${OUTPUT}" "if (name == \"${name}\") { std::string text;\n")
++  string(LENGTH "${source}" source_length)
++  set(offset 0)
++  while(offset LESS source_length)
++    string(SUBSTRING "${source}" ${offset} 12000 chunk)
++    file(APPEND "${OUTPUT}" "text += R\"CANESHADER(${chunk})CANESHADER\";\n")
++    math(EXPR offset "${offset} + 12000")
++  endwhile()
++  file(APPEND "${OUTPUT}" "return text; }\n")
+ endforeach()
+ 
+ file(APPEND "${OUTPUT}"
